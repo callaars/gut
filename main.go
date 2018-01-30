@@ -9,6 +9,8 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -30,9 +32,25 @@ var ColorPermExecute = color.New(color.FgGreen)
 var ColorPermNone = color.New(color.FgYellow)
 var ColorFileSize = color.New(color.FgGreen, color.Bold)
 var ColorOwner = color.New(color.FgYellow, color.Bold)
+var ColorSymlinkDest = color.New(color.FgCyan)
+var ColorSymlinkSource = color.New(color.FgMagenta, color.Bold)
 
 func main() {
 	setupApp()
+}
+
+type ByDir []os.FileInfo
+
+func (a ByDir) Len() int      { return len(a) }
+func (a ByDir) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByDir) Less(i, j int) bool {
+	if a[i].IsDir() && !a[j].IsDir() {
+		return true
+	} else if !a[i].IsDir() && a[j].IsDir() {
+		return false
+	} else {
+		return a[i].Name() < a[j].Name()
+	}
 }
 
 // Pads a string with whitespaces to the left with a specific size and returns a new string.
@@ -145,7 +163,7 @@ func printOwner(file os.FileInfo) {
 	ColorOwner.Print(owner.Username + " " + group.Name + Spacer)
 }
 
-func outputFiles(files []os.FileInfo) {
+func outputFiles(files []os.FileInfo, path string) {
 	boldBlue := color.New(color.FgBlue, color.Bold)
 
 	for _, file := range files {
@@ -157,7 +175,21 @@ func outputFiles(files []os.FileInfo) {
 		if file.IsDir() {
 			boldBlue.Print(file.Name())
 		} else {
-			fmt.Print(file.Name())
+			if file.Mode()&os.ModeSymlink != 0 {
+				// Follow the symlink
+				fullFilePath := filepath.Join(path, file.Name())
+				followedPath, err := filepath.EvalSymlinks(fullFilePath)
+
+				if err != nil {
+					fmt.Print(file.Name() + " → [unknown]")
+				} else {
+					ColorSymlinkDest.Print(file.Name())
+					fmt.Print(" → ")
+					ColorSymlinkSource.Print(followedPath)
+				}
+			} else {
+				fmt.Print(file.Name())
+			}
 		}
 
 		fmt.Println()
@@ -170,19 +202,32 @@ func setupApp() {
 	app.Usage = "ls replacement written in go"
 
 	app.Action = func(c *cli.Context) error {
-		fmt.Println("Amount of arguments:", c.NArg())
+		// Default path is the current directory
+		path := "./"
 
 		if c.NArg() > 0 {
-			fmt.Println("Last argument", os.Args[c.NArg()])
+			path = os.Args[c.NArg()]
 		}
 
-		files, err := ioutil.ReadDir(os.Args[c.NArg()] + "/")
+		clearPath, err := filepath.Abs(path)
+
+		if err != nil {
+			// The path does not exist
+			log.Fatal(err)
+			return err
+		}
+
+		files, err := ioutil.ReadDir(clearPath)
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		outputFiles(files)
+		fmt.Println("Current path", clearPath)
+
+		sort.Sort(ByDir(files))
+
+		outputFiles(files, clearPath)
 
 		return nil
 	}
