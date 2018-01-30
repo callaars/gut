@@ -260,7 +260,12 @@ func setupApp() {
 		regex := c.String("regexp")
 
 		if len(regex) > 0 {
-			files = filterFiles(files, regex)
+			files, err = filterFiles(files, regex)
+
+			if err != nil {
+				log.Fatal(err)
+				return err
+			}
 		}
 
 		// outputHeader()
@@ -272,11 +277,11 @@ func setupApp() {
 	app.Run(os.Args)
 }
 
-func filterFiles(files []os.FileInfo, regex string) []os.FileInfo {
+func filterFiles(files []os.FileInfo, regex string) ([]os.FileInfo, error) {
 	match, err := regexp.Compile(regex)
 
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	var filteredFiles []os.FileInfo
@@ -287,5 +292,5 @@ func filterFiles(files []os.FileInfo, regex string) []os.FileInfo {
 		}
 	}
 
-	return filteredFiles
+	return filteredFiles, nil
 }
