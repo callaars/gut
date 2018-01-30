@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -222,12 +223,21 @@ func setupApp() {
 	app.Name = "gut"
 	app.Usage = "ls replacement written in go"
 
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "regexp, x",
+			Value: "",
+			Usage: "Regular expression string to search for files and directories.",
+		},
+	}
+
 	app.Action = func(c *cli.Context) error {
 		// Default path is the current directory
 		path := "./"
 
-		if c.NArg() > 0 {
-			path = os.Args[c.NArg()]
+		// This should check if the last value is a valid path without a flag
+		if len(os.Args) > 1 {
+			path = os.Args[len(os.Args)-1]
 		}
 
 		clearPath, err := filepath.Abs(path)
@@ -246,6 +256,12 @@ func setupApp() {
 
 		sort.Sort(ByDir(files))
 
+		regex := c.String("regexp")
+
+		if len(regex) > 0 {
+			files = filterFiles(files, regex)
+		}
+
 		// outputHeader()
 		outputFiles(files, clearPath)
 
@@ -253,4 +269,22 @@ func setupApp() {
 	}
 
 	app.Run(os.Args)
+}
+
+func filterFiles(files []os.FileInfo, regex string) []os.FileInfo {
+	match, err := regexp.Compile(regex)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var filteredFiles []os.FileInfo
+
+	for i := 0; i < len(files); i++ {
+		if match.MatchString(files[i].Name()) {
+			filteredFiles = append(filteredFiles, files[i])
+		}
+	}
+
+	return filteredFiles
 }
