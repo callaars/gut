@@ -34,6 +34,7 @@ var ColorFileSize = color.New(color.FgGreen, color.Bold)
 var ColorOwner = color.New(color.FgYellow, color.Bold)
 var ColorSymlinkDest = color.New(color.FgCyan)
 var ColorSymlinkSource = color.New(color.FgMagenta, color.Bold)
+var ColorHeader = color.New(color.FgWhite, color.Underline)
 
 func main() {
 	setupApp()
@@ -196,6 +197,26 @@ func outputFiles(files []os.FileInfo, path string) {
 	}
 }
 
+func outputHeader() {
+	ColorHeader.Print("Permissions")
+
+	fmt.Print(Spacer)
+	ColorHeader.Print("Size")
+
+	fmt.Print(Spacer)
+	ColorHeader.Print("User")
+
+	fmt.Print(Spacer)
+	ColorHeader.Print("Group")
+
+	ColorHeader.Print("Date Modified")
+
+	fmt.Print(Spacer)
+	ColorHeader.Print("Name")
+
+	fmt.Println()
+}
+
 func setupApp() {
 	app := cli.NewApp()
 	app.Name = "gut"
@@ -223,10 +244,9 @@ func setupApp() {
 			log.Fatal(err)
 		}
 
-		fmt.Println("Current path", clearPath)
-
 		sort.Sort(ByDir(files))
 
+		// outputHeader()
 		outputFiles(files, clearPath)
 
 		return nil
