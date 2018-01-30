@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/fatih/color"
-	"github.com/phayes/permbits"
-	"github.com/urfave/cli"
 	"io/ioutil"
 	"log"
 	"os"
@@ -16,6 +13,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/fatih/color"
+	"github.com/phayes/permbits"
+	"github.com/urfave/cli"
 )
 
 const Spacer = "  "
