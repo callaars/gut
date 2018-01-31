@@ -222,6 +222,7 @@ func outputHeader() {
 func setupApp() {
 	app := cli.NewApp()
 	app.Name = "gut"
+	app.Version = "0.0.1"
 	app.Usage = "ls replacement written in go"
 
 	app.Flags = []cli.Flag{
